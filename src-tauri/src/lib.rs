@@ -1,3 +1,5 @@
+mod apps;
+mod devjunk;
 mod disk;
 mod dupes;
 mod junk;
@@ -5,6 +7,7 @@ mod large;
 mod progress;
 mod safety;
 mod scan;
+mod tray;
 mod tree;
 
 use serde::Serialize;
@@ -26,6 +29,30 @@ async fn get_disk_info() -> Result<Vec<disk::DiskInfo>, String> {
 #[tauri::command]
 async fn scan_junk(app: tauri::AppHandle) -> Result<Vec<junk::JunkCategory>, String> {
     tauri::async_runtime::spawn_blocking(move || junk::scan_junk(&app))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn scan_dev_junk(app: tauri::AppHandle) -> Result<Vec<devjunk::DevArtifact>, String> {
+    tauri::async_runtime::spawn_blocking(move || devjunk::scan_dev_junk(&app))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn list_apps(app: tauri::AppHandle) -> Result<Vec<apps::AppInfo>, String> {
+    tauri::async_runtime::spawn_blocking(move || apps::list_apps(&app))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn find_app_leftovers(
+    bundle_id: String,
+    app_name: String,
+) -> Result<Vec<scan::FileEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || apps::find_leftovers(&bundle_id, &app_name))
         .await
         .map_err(|e| e.to_string())
 }
@@ -119,13 +146,31 @@ fn get_home_dir() -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(tree::TreeState::default())
+        .setup(|app| {
+            tray::setup(app)?;
+            tray::spawn_watcher(app.handle().clone());
+            Ok(())
+        })
+        .on_window_event(|_window, _event| {
+            // macOS: closing the window keeps the app alive in the tray so
+            // the periodic junk check can run; quit via the tray menu.
+            #[cfg(target_os = "macos")]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = _event {
+                let _ = _window.hide();
+                api.prevent_close();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             get_disk_info,
             scan_junk,
+            scan_dev_junk,
+            list_apps,
+            find_app_leftovers,
             scan_large_files,
             scan_duplicates,
             start_tree_scan,
@@ -135,6 +180,14 @@ pub fn run() {
             clean_paths,
             get_home_dir
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    app.run(|_app_handle, _event| {
+        // macOS: clicking the Dock icon re-opens the hidden window.
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = _event {
+            tray::show_main_window(_app_handle);
+        }
+    });
 }

@@ -24,16 +24,19 @@ Lưu ý: `cargo` nằm ở `~/.cargo/bin` — nếu shell không thấy thì `ex
 
 ```
 src/                          # Vue frontend
-  App.vue                     # shell: sidebar 5 tab, KeepAlive views
-  views/                      # DashboardView, JunkView, LargeFilesView, TreeView, DupesView
+  App.vue                     # shell: sidebar 7 tab, KeepAlive views
+  views/                      # DashboardView, JunkView, DevJunkView, UninstallView, LargeFilesView, TreeView, DupesView
   components/                 # ConfirmClean (modal xác nhận), ScanStatus (progress)
   composables/useScanProgress.ts  # lắng nghe event scan://progress theo task
   api.ts                      # wrapper invoke() + formatBytes
   types.ts                    # interface khớp với struct Serialize bên Rust
 src-tauri/src/
-  lib.rs                      # Tauri commands (async + spawn_blocking)
+  lib.rs                      # Tauri commands (async + spawn_blocking), builder + window events
   safety.rs                   # validate_deletable + trash_paths — LỚP AN TOÀN DUY NHẤT
-  junk.rs                     # quét 5 nhóm junk theo CategoryDef khai báo
+  junk.rs                     # quét 5 nhóm junk theo CategoryDef khai báo + junk_total_size (check nền)
+  devjunk.rs                  # quét home tìm artifact dev theo project: node_modules / target / venv
+  apps.rs                     # gỡ ứng dụng (macOS): liệt kê .app, đọc Info.plist, tìm leftover ~/Library
+  tray.rs                     # tray icon + menu + watcher định kỳ (12h) notify khi rác > 5GB
   large.rs                    # quét file lớn (jwalk)
   tree.rs                     # phân tích dung lượng: Miller columns, size tính nền
   dupes.rs                    # tìm trùng lặp 3 tầng: size → hash 64KB → full BLAKE3
@@ -41,7 +44,7 @@ src-tauri/src/
   progress.rs                 # emit event scan://progress
 ```
 
-Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy trong `spawn_blocking` → trả JSON. Tiến trình quét đi ngược qua event `scan://progress` (payload `ScanProgress`, phân biệt bằng field `task`: `junk` | `large` | `dupes` | `tree`).
+Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy trong `spawn_blocking` → trả JSON. Tiến trình quét đi ngược qua event `scan://progress` (payload `ScanProgress`, phân biệt bằng field `task`: `junk` | `large` | `dupes` | `tree` | `dev` | `apps`).
 
 Riêng tab Phân tích (`tree.rs` + `TreeView.vue`) chạy khác các tab quét-rồi-hiển-thị:
 
@@ -58,7 +61,7 @@ Tính size: dùng `scan::on_disk_size` (block thực trên đĩa, kiểu `du`) c
 Đây là app xóa file; một bug có thể mất dữ liệu người dùng:
 
 - **Mọi lệnh xóa phải đi qua `safety::trash_paths`** — dùng `trash::delete` (vào Thùng rác), tuyệt đối không dùng `fs::remove_*` cho dữ liệu người dùng.
-- `validate_deletable` bắt buộc trước khi xóa: chỉ cho phép path trong home hoặc temp dir, canonicalize để chặn `..`/symlink, từ chối protected paths (home root, Documents, Desktop, `.ssh`, `/System`, `C:\Windows`...).
+- `validate_deletable` bắt buộc trước khi xóa: chỉ cho phép path trong home hoặc temp dir (ngoại lệ duy nhất: `.app` bundle nằm trực tiếp trong `/Applications` — phục vụ gỡ ứng dụng), canonicalize để chặn `..`/symlink, từ chối protected paths (home root, Documents, Desktop, `.ssh`, `/System`, `C:\Windows`...).
 - Thêm protected path mới vào `protected_roots()` khi thêm tính năng đụng vùng nhạy cảm; viết test cho mọi thay đổi trong `safety.rs`.
 - UI luôn theo flow: quét → hiển thị → user chọn → modal ConfirmClean → mới xóa. Không bao giờ xóa tự động.
 - Chỉ đưa vào danh sách junk những thứ tái tạo được (cache, temp, log). Không thêm thư mục chứa dữ liệu người dùng.

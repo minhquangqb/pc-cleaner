@@ -41,9 +41,19 @@ fn protected_roots() -> Vec<PathBuf> {
     roots
 }
 
+/// True only for a `.app` bundle sitting directly inside `/Applications`
+/// (macOS). Used by the uninstaller: the bundle itself may be trashed, but
+/// never `/Applications` itself, nested paths inside other bundles, or
+/// anything under `/System`.
+fn is_user_app_bundle(path: &Path) -> bool {
+    path.extension().is_some_and(|ext| ext == "app")
+        && path.parent() == Some(Path::new("/Applications"))
+}
+
 /// A path is deletable only if it lives under the user's home directory or
-/// the system temp directory, and is not itself a protected root or an
-/// ancestor of one.
+/// the system temp directory (exception: a top-level app bundle in
+/// `/Applications`, for the uninstaller), and is not itself a protected root
+/// or an ancestor of one.
 pub fn validate_deletable(path: &Path) -> Result<PathBuf, String> {
     if !path.is_absolute() {
         return Err(format!("Path is not absolute: {}", path.display()));
@@ -57,7 +67,9 @@ pub fn validate_deletable(path: &Path) -> Result<PathBuf, String> {
     let tmp = std::env::temp_dir()
         .canonicalize()
         .unwrap_or_else(|_| std::env::temp_dir());
-    let allowed = canonical.starts_with(&home) || canonical.starts_with(&tmp);
+    let allowed = canonical.starts_with(&home)
+        || canonical.starts_with(&tmp)
+        || is_user_app_bundle(&canonical);
     if !allowed {
         return Err(format!(
             "Refusing to touch path outside home/temp: {}",
@@ -114,6 +126,22 @@ mod tests {
     fn rejects_relative_and_outside_paths() {
         assert!(validate_deletable(Path::new("relative/path")).is_err());
         assert!(validate_deletable(Path::new("/usr/lib")).is_err());
+    }
+
+    #[test]
+    fn app_bundle_rule_only_matches_top_level_applications() {
+        assert!(is_user_app_bundle(Path::new("/Applications/Foo.app")));
+        // Never /Applications itself, nested paths, non-bundles, or /System.
+        assert!(!is_user_app_bundle(Path::new("/Applications")));
+        assert!(!is_user_app_bundle(Path::new("/Applications/Foo.app/Contents")));
+        assert!(!is_user_app_bundle(Path::new("/Applications/Utilities/Foo.app")));
+        assert!(!is_user_app_bundle(Path::new("/Applications/Foo.txt")));
+        assert!(!is_user_app_bundle(Path::new("/System/Applications/Mail.app")));
+    }
+
+    #[test]
+    fn still_rejects_applications_root() {
+        assert!(validate_deletable(Path::new("/Applications")).is_err());
     }
 
     #[test]

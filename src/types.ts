@@ -32,8 +32,24 @@ export interface CleanResult {
   errors: string[];
 }
 
+export interface DevArtifact {
+  path: string;
+  project: string;
+  kind: string;
+  size: number;
+  age_days: number;
+}
+
+export interface AppInfo {
+  path: string;
+  name: string;
+  bundle_id: string;
+  size: number;
+  last_used_days: number | null;
+}
+
 export interface ScanProgress {
-  task: "junk" | "large" | "dupes" | "tree";
+  task: "junk" | "large" | "dupes" | "tree" | "dev" | "apps";
   phase: string;
   detail: string;
   done: number;

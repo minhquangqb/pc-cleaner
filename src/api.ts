@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AppInfo,
   CleanResult,
+  DevArtifact,
   DiskInfo,
   DupGroup,
   FileEntry,
@@ -10,6 +12,13 @@ import type {
 export const getDiskInfo = () => invoke<DiskInfo[]>("get_disk_info");
 
 export const scanJunk = () => invoke<JunkCategory[]>("scan_junk");
+
+export const scanDevJunk = () => invoke<DevArtifact[]>("scan_dev_junk");
+
+export const listApps = () => invoke<AppInfo[]>("list_apps");
+
+export const findAppLeftovers = (bundleId: string, appName: string) =>
+  invoke<FileEntry[]>("find_app_leftovers", { bundleId, appName });
 
 export const scanLargeFiles = (root: string, minSizeMb: number, limit = 200) =>
   invoke<FileEntry[]>("scan_large_files", { root, minSizeMb, limit });

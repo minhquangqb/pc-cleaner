@@ -98,6 +98,39 @@ fn category_defs() -> Vec<CategoryDef> {
     ]
 }
 
+fn candidates_for(def: &CategoryDef) -> Vec<PathBuf> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    for base in (def.paths)() {
+        if !base.exists() {
+            continue;
+        }
+        if def.expand_children {
+            if let Ok(children) = std::fs::read_dir(&base) {
+                for child in children.flatten() {
+                    candidates.push(child.path());
+                }
+            }
+        } else {
+            candidates.push(base);
+        }
+    }
+    candidates
+}
+
+/// Total reclaimable junk across all categories, computed without emitting
+/// progress events — used by the background tray check.
+pub fn junk_total_size() -> u64 {
+    category_defs()
+        .par_iter()
+        .map(|def| {
+            candidates_for(def)
+                .par_iter()
+                .map(|p| path_size(p))
+                .sum::<u64>()
+        })
+        .sum()
+}
+
 /// Scan all junk categories. Only paths that actually exist are reported.
 /// Emits per-item progress events while sizing directories.
 pub fn scan_junk(app: &AppHandle) -> Vec<JunkCategory> {
@@ -105,21 +138,7 @@ pub fn scan_junk(app: &AppHandle) -> Vec<JunkCategory> {
     let with_candidates: Vec<(CategoryDef, Vec<PathBuf>)> = category_defs()
         .into_iter()
         .map(|def| {
-            let mut candidates: Vec<PathBuf> = Vec::new();
-            for base in (def.paths)() {
-                if !base.exists() {
-                    continue;
-                }
-                if def.expand_children {
-                    if let Ok(children) = std::fs::read_dir(&base) {
-                        for child in children.flatten() {
-                            candidates.push(child.path());
-                        }
-                    }
-                } else {
-                    candidates.push(base);
-                }
-            }
+            let candidates = candidates_for(&def);
             (def, candidates)
         })
         .collect();

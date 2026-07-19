@@ -5,7 +5,7 @@ pub const SCAN_PROGRESS_EVENT: &str = "scan://progress";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ScanProgress {
-    /// Which scanner emitted this: "junk" | "large" | "dupes".
+    /// Which scanner emitted this: "junk" | "large" | "dupes" | "dev" | "apps".
     pub task: String,
     /// Human-readable phase label.
     pub phase: String,

@@ -3,6 +3,8 @@ import { ref, type Component } from "vue";
 import {
   LayoutDashboard,
   Trash2,
+  FolderCode,
+  PackageX,
   FileBox,
   FolderTree,
   Files,
@@ -11,6 +13,8 @@ import {
 import { requestAnalyze } from "./composables/useAnalyzeTarget";
 import DashboardView from "./views/DashboardView.vue";
 import JunkView from "./views/JunkView.vue";
+import DevJunkView from "./views/DevJunkView.vue";
+import UninstallView from "./views/UninstallView.vue";
 import LargeFilesView from "./views/LargeFilesView.vue";
 import DupesView from "./views/DupesView.vue";
 import TreeView from "./views/TreeView.vue";
@@ -25,6 +29,8 @@ interface NavItem {
 const nav: NavItem[] = [
   { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard, view: DashboardView },
   { id: "junk", label: "Dọn rác", icon: Trash2, view: JunkView },
+  { id: "dev", label: "Dự án dev", icon: FolderCode, view: DevJunkView },
+  { id: "apps", label: "Gỡ ứng dụng", icon: PackageX, view: UninstallView },
   { id: "large", label: "File lớn", icon: FileBox, view: LargeFilesView },
   { id: "tree", label: "Phân tích", icon: FolderTree, view: TreeView },
   { id: "dupes", label: "Trùng lặp", icon: Files, view: DupesView },
