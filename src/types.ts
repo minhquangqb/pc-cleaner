@@ -33,7 +33,7 @@ export interface CleanResult {
 }
 
 export interface ScanProgress {
-  task: "junk" | "large" | "dupes";
+  task: "junk" | "large" | "dupes" | "tree";
   phase: string;
   detail: string;
   done: number;

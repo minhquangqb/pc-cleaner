@@ -1,6 +1,6 @@
 # PC Cleaner
 
-Phần mềm dọn dẹp máy tính cross-platform (macOS / Windows / Linux): quét junk/cache, tìm file lớn, tìm file trùng lặp. Mọi thao tác xóa đều chuyển vào Thùng rác.
+Phần mềm dọn dẹp máy tính cross-platform (macOS / Windows / Linux): quét junk/cache, tìm file lớn, tìm file trùng lặp, phân tích dung lượng thư mục theo cột (kiểu OmniDiskSweeper). Mọi thao tác xóa đều chuyển vào Thùng rác.
 
 ## Stack
 
@@ -24,8 +24,8 @@ Lưu ý: `cargo` nằm ở `~/.cargo/bin` — nếu shell không thấy thì `ex
 
 ```
 src/                          # Vue frontend
-  App.vue                     # shell: sidebar 4 tab, KeepAlive views
-  views/                      # DashboardView, JunkView, LargeFilesView, DupesView
+  App.vue                     # shell: sidebar 5 tab, KeepAlive views
+  views/                      # DashboardView, JunkView, LargeFilesView, TreeView, DupesView
   components/                 # ConfirmClean (modal xác nhận), ScanStatus (progress)
   composables/useScanProgress.ts  # lắng nghe event scan://progress theo task
   api.ts                      # wrapper invoke() + formatBytes
@@ -35,12 +35,23 @@ src-tauri/src/
   safety.rs                   # validate_deletable + trash_paths — LỚP AN TOÀN DUY NHẤT
   junk.rs                     # quét 5 nhóm junk theo CategoryDef khai báo
   large.rs                    # quét file lớn (jwalk)
+  tree.rs                     # phân tích dung lượng: Miller columns, size tính nền
   dupes.rs                    # tìm trùng lặp 3 tầng: size → hash 64KB → full BLAKE3
   disk.rs                     # thông tin ổ đĩa (sysinfo)
   progress.rs                 # emit event scan://progress
 ```
 
-Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy trong `spawn_blocking` → trả JSON. Tiến trình quét đi ngược qua event `scan://progress` (payload `ScanProgress`, phân biệt bằng field `task`: `junk` | `large` | `dupes`).
+Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy trong `spawn_blocking` → trả JSON. Tiến trình quét đi ngược qua event `scan://progress` (payload `ScanProgress`, phân biệt bằng field `task`: `junk` | `large` | `dupes` | `tree`).
+
+Riêng tab Phân tích (`tree.rs` + `TreeView.vue`) chạy khác các tab quét-rồi-hiển-thị:
+
+- Listing mỗi cột là `read_dir` trực tiếp (tức thì, không chờ quét); chỉ size thư mục lấy từ index nền.
+- `start_tree_scan` spawn worker pool (tối đa 8 thread) walk toàn cây qua hàng đợi ưu tiên hot/cold, cộng dồn size file vào mọi ancestor trong `TreeState` (managed state, Arc + Mutex); scan mới hủy scan cũ qua generation counter; xong thì emit event `tree://done`.
+- `set_tree_focus` (gọi khi user drill vào thư mục) đẩy các thư mục thuộc nhánh đang mở lên đầu hàng đợi (hot, LIFO/depth-first) — nhánh user đang xem được tính size trước, phần còn lại tính sau.
+- Frontend poll refresh các cột đang mở mỗi 0.7s khi đang quét; size thư mục hiển thị hậu tố `+` khi chưa chốt.
+- Sau khi xóa, `forget_tree_paths` trừ size khỏi index thay vì quét lại.
+
+Tính size: dùng `scan::on_disk_size` (block thực trên đĩa, kiểu `du`) cho tab Phân tích và File lớn — cloud placeholder (iCloud / Google Drive chưa tải về) tính ~0, sparse/APFS-compressed tính đúng thực tế. Tab Trùng lặp giữ size logic vì so theo nội dung.
 
 ## Quy tắc an toàn — KHÔNG ĐƯỢC VI PHẠM
 
@@ -55,6 +66,7 @@ Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy 
 ## Conventions
 
 - UI strings bằng tiếng Việt (có dấu đầy đủ); code comments, tên biến/hàm bằng tiếng Anh.
+- Icon UI dùng `@lucide/vue` (SVG, stroke theo `currentColor`) — KHÔNG dùng emoji làm icon. Icon inline cạnh text dùng class `inline size-4 align-[-2px]`; icon sidebar/trạng thái render qua `<component :is>`.
 - Thêm Tauri command mới: viết hàm trong module riêng → khai báo trong `lib.rs` → đăng ký vào `generate_handler!` → thêm wrapper trong `api.ts` + type trong `types.ts`.
 - Struct trả về frontend dùng `#[derive(Serialize)]`, field snake_case (frontend types khớp snake_case, không đổi tên).
 - Quét nặng dùng `jwalk`/`rayon` song song; emit progress có throttle (mỗi N item) để không spam event.

@@ -17,6 +17,18 @@ export const scanLargeFiles = (root: string, minSizeMb: number, limit = 200) =>
 export const scanDuplicates = (root: string, minSizeKb: number) =>
   invoke<DupGroup[]>("scan_duplicates", { root, minSizeKb });
 
+export const startTreeScan = (root: string) =>
+  invoke<void>("start_tree_scan", { root });
+
+export const getTreeChildren = (path: string) =>
+  invoke<FileEntry[]>("get_tree_children", { path });
+
+export const setTreeFocus = (path: string) =>
+  invoke<void>("set_tree_focus", { path });
+
+export const forgetTreePaths = (items: [string, number][]) =>
+  invoke<void>("forget_tree_paths", { items });
+
 export const cleanPaths = (paths: string[]) =>
   invoke<CleanResult>("clean_paths", { paths });
 

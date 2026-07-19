@@ -9,6 +9,21 @@ pub struct FileEntry {
     pub is_dir: bool,
 }
 
+/// Actual space a file occupies on disk (like `du`), not its logical length.
+/// Cloud placeholders (iCloud, Google Drive...) report a full logical size via
+/// `len()` while occupying zero blocks locally; sparse/compressed files also
+/// differ. On non-Unix platforms this falls back to the logical size.
+#[cfg(unix)]
+pub fn on_disk_size(meta: &std::fs::Metadata) -> u64 {
+    use std::os::unix::fs::MetadataExt;
+    meta.blocks() * 512
+}
+
+#[cfg(not(unix))]
+pub fn on_disk_size(meta: &std::fs::Metadata) -> u64 {
+    meta.len()
+}
+
 /// Total size in bytes of a file or directory tree (parallel walk).
 pub fn path_size(path: &Path) -> u64 {
     if path.is_file() {

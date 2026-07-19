@@ -29,7 +29,7 @@ pub fn scan_large_files(app: &AppHandle, root: &Path, min_size: u64, limit: usiz
                 );
             }
             let meta = entry.metadata().ok()?;
-            let size = meta.len();
+            let size = crate::scan::on_disk_size(&meta);
             if size < min_size {
                 return None;
             }

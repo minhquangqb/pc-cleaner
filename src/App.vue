@@ -1,25 +1,41 @@
 <script setup lang="ts">
 import { ref, type Component } from "vue";
+import {
+  LayoutDashboard,
+  Trash2,
+  FileBox,
+  FolderTree,
+  Files,
+  Sparkles,
+} from "@lucide/vue";
+import { requestAnalyze } from "./composables/useAnalyzeTarget";
 import DashboardView from "./views/DashboardView.vue";
 import JunkView from "./views/JunkView.vue";
 import LargeFilesView from "./views/LargeFilesView.vue";
 import DupesView from "./views/DupesView.vue";
+import TreeView from "./views/TreeView.vue";
 
 interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: Component;
   view: Component;
 }
 
 const nav: NavItem[] = [
-  { id: "dashboard", label: "Tổng quan", icon: "📊", view: DashboardView },
-  { id: "junk", label: "Dọn rác", icon: "🧹", view: JunkView },
-  { id: "large", label: "File lớn", icon: "📦", view: LargeFilesView },
-  { id: "dupes", label: "Trùng lặp", icon: "🗂️", view: DupesView },
+  { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard, view: DashboardView },
+  { id: "junk", label: "Dọn rác", icon: Trash2, view: JunkView },
+  { id: "large", label: "File lớn", icon: FileBox, view: LargeFilesView },
+  { id: "tree", label: "Phân tích", icon: FolderTree, view: TreeView },
+  { id: "dupes", label: "Trùng lặp", icon: Files, view: DupesView },
 ];
 
 const active = ref(nav[0]);
+
+function openAnalyze(path: string) {
+  requestAnalyze(path);
+  active.value = nav.find((item) => item.id === "tree") ?? active.value;
+}
 </script>
 
 <template>
@@ -28,7 +44,7 @@ const active = ref(nav[0]);
       class="flex w-56 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900/40 p-4"
     >
       <div class="flex items-center gap-2 px-2 py-3">
-        <span class="text-xl">✨</span>
+        <Sparkles class="size-5 text-emerald-400" />
         <span class="font-semibold tracking-tight">PC Cleaner</span>
       </div>
       <nav class="mt-4 space-y-1">
@@ -43,7 +59,7 @@ const active = ref(nav[0]);
           "
           @click="active = item"
         >
-          <span>{{ item.icon }}</span>
+          <component :is="item.icon" class="size-4 shrink-0" />
           {{ item.label }}
         </button>
       </nav>
@@ -54,7 +70,7 @@ const active = ref(nav[0]);
 
     <main class="flex-1 overflow-y-auto p-8">
       <KeepAlive>
-        <component :is="active.view" />
+        <component :is="active.view" @analyze="openAnalyze" />
       </KeepAlive>
     </main>
   </div>

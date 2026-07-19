@@ -3,6 +3,10 @@ import { onMounted, ref } from "vue";
 import { formatBytes, getDiskInfo } from "../api";
 import type { DiskInfo } from "../types";
 
+const emit = defineEmits<{
+  analyze: [path: string];
+}>();
+
 const disks = ref<DiskInfo[]>([]);
 const error = ref("");
 
@@ -33,7 +37,9 @@ function usedPercent(d: DiskInfo): number {
       <div
         v-for="d in disks"
         :key="d.mount_point"
-        class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
+        class="cursor-pointer rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition-colors hover:border-emerald-700/60 hover:bg-zinc-900"
+        title="Phân tích dung lượng ổ này"
+        @click="emit('analyze', d.mount_point)"
       >
         <div class="flex items-baseline justify-between">
           <div>
@@ -60,8 +66,11 @@ function usedPercent(d: DiskInfo): number {
             :style="{ width: usedPercent(d) + '%' }"
           />
         </div>
-        <div class="mt-2 text-xs text-zinc-500">
-          Còn trống {{ formatBytes(d.available) }} ({{ 100 - usedPercent(d) }}%)
+        <div class="mt-2 flex items-center justify-between text-xs text-zinc-500">
+          <span>
+            Còn trống {{ formatBytes(d.available) }} ({{ 100 - usedPercent(d) }}%)
+          </span>
+          <span class="text-emerald-600">Phân tích ›</span>
         </div>
       </div>
     </div>
