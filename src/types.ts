@@ -46,6 +46,7 @@ export interface AppInfo {
   bundle_id: string;
   size: number;
   last_used_days: number | null;
+  icon: string | null;
 }
 
 export interface ScanProgress {

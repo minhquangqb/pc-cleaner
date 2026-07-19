@@ -31,6 +31,7 @@ sysinfo = "0.39.6"
 blake3 = { version = "1.8.5", features = ["rayon", "mmap"] }
 tauri-plugin-dialog = "2.7.2"
 plist = "1"
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 tokio = { version = "1", features = ["time"] }
 

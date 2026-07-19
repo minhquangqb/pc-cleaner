@@ -207,6 +207,18 @@ async function doUninstall() {
             :key="app.path"
             class="flex items-center gap-4 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-3 last:border-b-0 hover:bg-zinc-800/40"
           >
+            <img
+              v-if="app.icon"
+              :src="app.icon"
+              class="size-8 shrink-0 rounded-lg"
+              alt=""
+            />
+            <div
+              v-else
+              class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-sm font-semibold text-zinc-500"
+            >
+              {{ app.name.charAt(0).toUpperCase() }}
+            </div>
             <div class="min-w-0 flex-1">
               <div class="truncate text-sm font-medium text-zinc-100">
                 {{ app.name }}
@@ -242,13 +254,21 @@ async function doUninstall() {
         class="mx-4 flex max-h-[80vh] w-full max-w-xl flex-col rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
       >
         <div class="flex items-start justify-between">
-          <div>
-            <h2 class="text-lg font-semibold text-zinc-100">
-              Gỡ {{ current.name }}
-            </h2>
-            <p class="mt-1 text-sm text-zinc-400">
-              Chọn những gì sẽ chuyển vào Thùng rác.
-            </p>
+          <div class="flex items-center gap-3">
+            <img
+              v-if="current.icon"
+              :src="current.icon"
+              class="size-10 shrink-0 rounded-xl"
+              alt=""
+            />
+            <div>
+              <h2 class="text-lg font-semibold text-zinc-100">
+                Gỡ {{ current.name }}
+              </h2>
+              <p class="mt-1 text-sm text-zinc-400">
+                Chọn những gì sẽ chuyển vào Thùng rác.
+              </p>
+            </div>
           </div>
           <button
             class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"

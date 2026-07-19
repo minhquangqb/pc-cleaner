@@ -15,6 +15,8 @@ pub struct AppInfo {
     /// Days since the app was last opened (Spotlight metadata).
     /// None = unknown (never opened, or Spotlight has no record).
     pub last_used_days: Option<u64>,
+    /// App icon as a `data:image/png;base64,...` URI (64px), if extractable.
+    pub icon: Option<String>,
 }
 
 fn home() -> PathBuf {
@@ -80,13 +82,82 @@ fn read_bundle(bundle: &Path) -> Option<AppInfo> {
                 .to_string_lossy()
                 .into_owned()
         });
+    let icon = app_icon_data_uri(bundle, &bundle_id, dict);
     Some(AppInfo {
         path: bundle.display().to_string(),
         name,
         bundle_id,
         size: path_size(bundle),
         last_used_days: last_used_days(bundle),
+        icon,
     })
+}
+
+/// Extract the app icon: locate the bundle's `.icns`, convert it to a 64px
+/// PNG with `sips` (cached under the user cache dir so later scans are
+/// instant), and return it inline as a data URI.
+#[cfg(target_os = "macos")]
+fn app_icon_data_uri(bundle: &Path, bundle_id: &str, dict: &plist::Dictionary) -> Option<String> {
+    use base64::Engine;
+
+    let resources = bundle.join("Contents/Resources");
+    let mut icns = dict
+        .get("CFBundleIconFile")
+        .and_then(|v| v.as_string())
+        .map(|name| {
+            let mut p = resources.join(name);
+            if p.extension().is_none() {
+                p.set_extension("icns");
+            }
+            p
+        })
+        .filter(|p| p.is_file());
+    if icns.is_none() {
+        if let Ok(read) = std::fs::read_dir(&resources) {
+            icns = read
+                .flatten()
+                .map(|e| e.path())
+                .find(|p| p.extension().is_some_and(|ext| ext == "icns"));
+        }
+    }
+    let icns = icns?;
+
+    let cache_dir = dirs::cache_dir()?.join("pc-cleaner/icons");
+    std::fs::create_dir_all(&cache_dir).ok()?;
+    let png = cache_dir.join(format!("{}.png", bundle_id.replace('/', "_")));
+
+    // Re-convert only when the source icon is newer than the cached PNG.
+    let stale = match (png.metadata(), icns.metadata()) {
+        (Ok(p), Ok(i)) => match (p.modified(), i.modified()) {
+            (Ok(pm), Ok(im)) => im > pm,
+            _ => false,
+        },
+        _ => true,
+    };
+    if stale {
+        let ok = std::process::Command::new("sips")
+            .args(["-z", "64", "64", "-s", "format", "png"])
+            .arg(&icns)
+            .arg("--out")
+            .arg(&png)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if !ok {
+            let _ = std::fs::remove_file(&png);
+            return None;
+        }
+    }
+    let bytes = std::fs::read(&png).ok().filter(|b| !b.is_empty())?;
+    Some(format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
+}
+
+#[cfg(not(target_os = "macos"))]
+fn app_icon_data_uri(_bundle: &Path, _bundle_id: &str, _dict: &plist::Dictionary) -> Option<String> {
+    None
 }
 
 #[cfg(target_os = "macos")]
