@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { ChevronDown, ChevronRight, CircleCheck } from "@lucide/vue";
 import { cleanPaths, formatBytes, scanJunk } from "../api";
 import type { JunkCategory } from "../types";
 import ConfirmClean from "../components/ConfirmClean.vue";
@@ -108,7 +109,8 @@ async function doClean() {
       v-if="lastFreed !== null"
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
-      ✓ Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
+      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -152,9 +154,10 @@ async function doClean() {
                 <span class="text-sm font-semibold text-zinc-200">
                   {{ formatBytes(cat.total_size) }}
                 </span>
-                <span class="text-zinc-500">
-                  {{ expanded.has(cat.id) ? "▾" : "▸" }}
-                </span>
+                <component
+                  :is="expanded.has(cat.id) ? ChevronDown : ChevronRight"
+                  class="size-4 text-zinc-500"
+                />
               </div>
             </button>
           </div>

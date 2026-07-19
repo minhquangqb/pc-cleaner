@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { CircleCheck, FolderOpen } from "@lucide/vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { cleanPaths, formatBytes, getHomeDir, scanLargeFiles } from "../api";
 import type { FileEntry } from "../types";
@@ -86,7 +87,8 @@ async function doClean() {
         class="max-w-md truncate rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-left font-mono text-xs text-zinc-300 hover:border-zinc-500"
         @click="pickFolder"
       >
-        📁 {{ root || "Chọn thư mục..." }}
+        <FolderOpen class="mr-1 inline size-4 align-[-2px]" />
+        {{ root || "Chọn thư mục..." }}
       </button>
       <label class="flex items-center gap-2 text-sm text-zinc-400">
         Tối thiểu
@@ -111,7 +113,8 @@ async function doClean() {
       v-if="lastFreed !== null"
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
-      ✓ Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
+      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
