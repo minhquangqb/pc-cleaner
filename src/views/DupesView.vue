@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { CircleCheck, FolderOpen } from "@lucide/vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { cleanPaths, formatBytes, getHomeDir, scanDuplicates } from "../api";
@@ -8,6 +9,7 @@ import ConfirmClean from "../components/ConfirmClean.vue";
 import ScanStatus from "../components/ScanStatus.vue";
 import { useScanProgress } from "../composables/useScanProgress";
 
+const { t } = useI18n();
 const { progress, reset: resetProgress } = useScanProgress("dupes");
 const root = ref("");
 const minSizeKb = ref(1024);
@@ -74,7 +76,7 @@ async function doClean() {
     const result = await cleanPaths(selectedPaths.value);
     lastFreed.value = result.freed;
     if (result.errors.length) {
-      error.value = `Một số mục không xóa được:\n${result.errors.slice(0, 5).join("\n")}`;
+      error.value = `${t("common.cleanErrors")}\n${result.errors.slice(0, 5).join("\n")}`;
     }
     confirming.value = false;
     await runScan();
@@ -88,9 +90,9 @@ async function doClean() {
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold">File trùng lặp</h1>
+    <h1 class="text-2xl font-semibold">{{ t("dupes.title") }}</h1>
     <p class="mt-1 text-sm text-zinc-400">
-      Tìm các file có nội dung giống hệt nhau (so sánh bằng hash BLAKE3).
+      {{ t("dupes.subtitle") }}
     </p>
 
     <div class="mt-5 flex flex-wrap items-center gap-3">
@@ -99,10 +101,10 @@ async function doClean() {
         @click="pickFolder"
       >
         <FolderOpen class="mr-1 inline size-4 align-[-2px]" />
-        {{ root || "Chọn thư mục..." }}
+        {{ root || t("common.pickFolder") }}
       </button>
       <label class="flex items-center gap-2 text-sm text-zinc-400">
-        Tối thiểu
+        {{ t("common.minSize") }}
         <input
           v-model.number="minSizeKb"
           type="number"
@@ -116,7 +118,7 @@ async function doClean() {
         :disabled="scanning || !root"
         @click="runScan"
       >
-        {{ scanning ? "Đang quét..." : "Quét" }}
+        {{ scanning ? t("common.scanning") : t("common.scan") }}
       </button>
     </div>
 
@@ -125,7 +127,7 @@ async function doClean() {
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
       <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
-      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      {{ t("common.freed", { size: formatBytes(lastFreed) }) }}
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -134,24 +136,24 @@ async function doClean() {
     <ScanStatus
       v-if="scanning"
       :progress="progress"
-      :fallback="`Đang so sánh nội dung file trong ${root}...`"
+      :fallback="t('dupes.fallback', { root })"
     />
 
     <template v-if="scanned && !scanning">
       <p v-if="groups.length === 0" class="mt-6 text-sm text-zinc-500">
-        Không tìm thấy file trùng lặp nào.
+        {{ t("dupes.empty") }}
       </p>
       <template v-else>
         <div class="mt-4 flex items-center justify-between">
           <span class="text-sm text-zinc-400">
-            {{ groups.length }} nhóm trùng lặp · lãng phí
+            {{ t("dupes.groupsFound", { count: groups.length }) }}
             <span class="font-semibold text-zinc-100">{{ formatBytes(totalWasted) }}</span>
           </span>
           <button
             class="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500"
             @click="selectAllButFirst"
           >
-            Chọn tất cả, giữ lại bản đầu tiên
+            {{ t("dupes.keepFirst") }}
           </button>
         </div>
 
@@ -162,9 +164,9 @@ async function doClean() {
             class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"
           >
             <div class="flex items-center justify-between text-xs text-zinc-500">
-              <span>{{ g.paths.length }} bản sao · {{ formatBytes(g.size) }}/file</span>
+              <span>{{ t("dupes.copies", { count: g.paths.length, size: formatBytes(g.size) }) }}</span>
               <span class="text-amber-400">
-                lãng phí {{ formatBytes(g.wasted) }}
+                {{ t("dupes.wasted", { size: formatBytes(g.wasted) }) }}
               </span>
             </div>
             <div class="mt-2 space-y-1">
@@ -193,14 +195,14 @@ async function doClean() {
         class="sticky bottom-4 mt-6 flex items-center justify-between rounded-2xl border border-zinc-700 bg-zinc-900 p-4 shadow-xl"
       >
         <span class="text-sm text-zinc-300">
-          Đã chọn {{ selected.size }} file ·
+          {{ t("common.selectedFiles", { count: selected.size }, selected.size) }}
           <span class="font-semibold text-zinc-100">{{ formatBytes(selectedSize) }}</span>
         </span>
         <button
           class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-500"
           @click="confirming = true"
         >
-          Dọn dẹp
+          {{ t("common.clean") }}
         </button>
       </div>
     </template>

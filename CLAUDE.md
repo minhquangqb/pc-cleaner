@@ -28,6 +28,7 @@ src/                          # Vue frontend
   views/                      # DashboardView, JunkView, DevJunkView, UninstallView, LargeFilesView, TreeView, DupesView
   components/                 # ConfirmClean (modal xác nhận), ScanStatus (progress)
   composables/useScanProgress.ts  # lắng nghe event scan://progress theo task
+  i18n/                       # vue-i18n: index.ts (setLocale + localStorage) + locales/vi.ts, en.ts
   api.ts                      # wrapper invoke() + formatBytes
   types.ts                    # interface khớp với struct Serialize bên Rust
 src-tauri/src/
@@ -42,6 +43,7 @@ src-tauri/src/
   dupes.rs                    # tìm trùng lặp 3 tầng: size → hash 64KB → full BLAKE3
   disk.rs                     # thông tin ổ đĩa (sysinfo)
   progress.rs                 # emit event scan://progress
+  i18n.rs                     # ngôn ngữ cho tray/notification (tr + persist file lang)
 ```
 
 Luồng dữ liệu: view gọi `api.ts` → `invoke()` command Rust → chạy trong `spawn_blocking` → trả JSON. Tiến trình quét đi ngược qua event `scan://progress` (payload `ScanProgress`, phân biệt bằng field `task`: `junk` | `large` | `dupes` | `tree` | `dev` | `apps`).
@@ -68,7 +70,9 @@ Tính size: dùng `scan::on_disk_size` (block thực trên đĩa, kiểu `du`) c
 
 ## Conventions
 
-- UI strings bằng tiếng Việt (có dấu đầy đủ); code comments, tên biến/hàm bằng tiếng Anh.
+- UI strings đi qua vue-i18n (`src/i18n/locales/vi.ts` + `en.ts`) — KHÔNG hard-code chuỗi hiển thị trong component; thêm string mới phải thêm cả hai locale (tiếng Việt có dấu đầy đủ). Switcher ở sidebar, lựa chọn lưu localStorage (`pc-cleaner-lang`) và sync sang Rust qua command `set_app_language` (tray menu + notification, persist vào app_config_dir/lang).
+- Backend emit `phase` trong `scan://progress` là key ổn định (vd `walking`, `dupes_stage1`, `sizing:<category_id>`) — frontend dịch trong `ScanStatus.vue` (`scan.phases.*`); KHÔNG emit chuỗi ngôn ngữ tự nhiên từ Rust. Tên/mô tả nhóm junk và dev-artifact dịch theo `id`/`kind` (`junk.categories.*`, `dev.kinds.*`), backend chỉ gửi fallback.
+- Code comments, tên biến/hàm bằng tiếng Anh.
 - Icon UI dùng `@lucide/vue` (SVG, stroke theo `currentColor`) — KHÔNG dùng emoji làm icon. Icon inline cạnh text dùng class `inline size-4 align-[-2px]`; icon sidebar/trạng thái render qua `<component :is>`.
 - Thêm Tauri command mới: viết hàm trong module riêng → khai báo trong `lib.rs` → đăng ký vào `generate_handler!` → thêm wrapper trong `api.ts` + type trong `types.ts`.
 - Struct trả về frontend dùng `#[derive(Serialize)]`, field snake_case (frontend types khớp snake_case, không đổi tên).

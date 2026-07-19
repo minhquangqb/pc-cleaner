@@ -18,6 +18,12 @@ fn protected_roots() -> Vec<PathBuf> {
         PathBuf::from("C:\\Program Files"),
         PathBuf::from("C:\\Program Files (x86)"),
     ];
+    // Windows may live on a drive other than C:; %SystemDrive% covers that.
+    if let Ok(drive) = std::env::var("SystemDrive") {
+        for sub in ["\\Windows", "\\Program Files", "\\Program Files (x86)", "\\ProgramData"] {
+            roots.push(PathBuf::from(format!("{drive}{sub}")));
+        }
+    }
     if let Some(home) = dirs::home_dir() {
         for important in [
             "", // home itself
@@ -142,6 +148,17 @@ mod tests {
     #[test]
     fn still_rejects_applications_root() {
         assert!(validate_deletable(Path::new("/Applications")).is_err());
+    }
+
+    #[test]
+    fn system_drive_roots_are_protected() {
+        std::env::set_var("SystemDrive", "D:");
+        let roots = protected_roots();
+        assert!(roots.contains(&PathBuf::from("D:\\Windows")));
+        assert!(roots.contains(&PathBuf::from("D:\\Program Files")));
+        // Hard-coded C: fallbacks stay regardless of the env var.
+        assert!(roots.contains(&PathBuf::from("C:\\Windows")));
+        std::env::remove_var("SystemDrive");
     }
 
     #[test]

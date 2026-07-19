@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import type { ScanProgress } from "../types";
+
+const { t, te } = useI18n();
 
 const props = defineProps<{
   progress: ScanProgress | null;
@@ -12,6 +15,20 @@ const percent = computed(() => {
   if (!p || p.total === 0) return null;
   return Math.min(100, Math.round((p.done / p.total) * 100));
 });
+
+// The backend emits stable phase keys (e.g. "walking", "sizing:app_caches")
+// so each locale renders them itself; unknown keys fall through verbatim.
+const phaseText = computed(() => {
+  const phase = props.progress?.phase;
+  if (!phase) return props.fallback;
+  if (phase.startsWith("sizing:")) {
+    const id = phase.slice("sizing:".length);
+    const nameKey = `junk.categories.${id}.name`;
+    return t("scan.sizingCategory", { name: te(nameKey) ? t(nameKey) : id });
+  }
+  const key = `scan.phases.${phase}`;
+  return te(key) ? t(key) : phase;
+});
 </script>
 
 <template>
@@ -21,7 +38,7 @@ const percent = computed(() => {
         class="size-5 shrink-0 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500"
       />
       <span class="text-sm font-medium text-zinc-200">
-        {{ props.progress?.phase ?? props.fallback }}
+        {{ phaseText }}
       </span>
       <span v-if="percent !== null" class="ml-auto text-sm font-semibold text-emerald-400">
         {{ percent }}%
@@ -30,7 +47,7 @@ const percent = computed(() => {
         v-else-if="props.progress && props.progress.done > 0"
         class="ml-auto text-sm text-zinc-400"
       >
-        {{ props.progress.done.toLocaleString() }} file
+        {{ t("scan.filesCount", { n: props.progress.done.toLocaleString() }, props.progress.done) }}
       </span>
     </div>
 
@@ -51,8 +68,12 @@ const percent = computed(() => {
       v-if="props.progress && props.progress.total > 0"
       class="mt-1 text-xs text-zinc-600"
     >
-      {{ props.progress.done.toLocaleString() }} /
-      {{ props.progress.total.toLocaleString() }} mục
+      {{
+        t("scan.itemsProgress", {
+          done: props.progress.done.toLocaleString(),
+          total: props.progress.total.toLocaleString(),
+        })
+      }}
     </div>
   </div>
 </template>

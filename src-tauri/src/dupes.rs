@@ -56,7 +56,7 @@ pub fn scan_duplicates(app: &AppHandle, root: &Path, min_size: u64) -> Vec<DupGr
             progress::emit(
                 app,
                 "dupes",
-                "Giai đoạn 1/3 — liệt kê file",
+                "dupes_stage1",
                 &entry.parent_path().display().to_string(),
                 walked,
                 0,
@@ -86,7 +86,7 @@ pub fn scan_duplicates(app: &AppHandle, root: &Path, min_size: u64) -> Vec<DupGr
                     progress::emit(
                         app,
                         "dupes",
-                        "Giai đoạn 2/3 — so sánh 64KB đầu file",
+                        "dupes_stage2",
                         &path.display().to_string(),
                         done,
                         partial_total,
@@ -117,7 +117,7 @@ pub fn scan_duplicates(app: &AppHandle, root: &Path, min_size: u64) -> Vec<DupGr
                 progress::emit(
                     app,
                     "dupes",
-                    "Giai đoạn 3/3 — xác nhận bằng full hash",
+                    "dupes_stage3",
                     &path.display().to_string(),
                     done,
                     full_total,

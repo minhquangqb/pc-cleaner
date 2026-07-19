@@ -2,6 +2,7 @@ mod apps;
 mod devjunk;
 mod disk;
 mod dupes;
+mod i18n;
 mod junk;
 mod large;
 mod progress;
@@ -144,6 +145,21 @@ fn get_home_dir() -> String {
     dirs::home_dir().unwrap_or_default().display().to_string()
 }
 
+/// "macos" | "windows" | "linux" — lets the UI hide platform-specific tabs
+/// (the uninstaller only works on macOS).
+#[tauri::command]
+fn get_platform() -> &'static str {
+    std::env::consts::OS
+}
+
+/// "vi" | "en" — keeps tray menu and notifications in the UI language.
+#[tauri::command]
+fn set_app_language(app: tauri::AppHandle, lang: String) {
+    i18n::set_lang(&lang);
+    i18n::persist(&app, i18n::lang());
+    tray::update_language(&app);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -152,14 +168,15 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .manage(tree::TreeState::default())
         .setup(|app| {
+            i18n::load(app.handle());
             tray::setup(app)?;
             tray::spawn_watcher(app.handle().clone());
             Ok(())
         })
         .on_window_event(|_window, _event| {
-            // macOS: closing the window keeps the app alive in the tray so
-            // the periodic junk check can run; quit via the tray menu.
-            #[cfg(target_os = "macos")]
+            // macOS/Windows: closing the window keeps the app alive in the
+            // tray so the periodic junk check can run; quit via the tray menu.
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
             if let tauri::WindowEvent::CloseRequested { api, .. } = _event {
                 let _ = _window.hide();
                 api.prevent_close();
@@ -178,7 +195,9 @@ pub fn run() {
             set_tree_focus,
             forget_tree_paths,
             clean_paths,
-            get_home_dir
+            get_home_dir,
+            get_platform,
+            set_app_language
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

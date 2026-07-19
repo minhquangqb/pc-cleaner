@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { CircleCheck, FolderOpen } from "@lucide/vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { cleanPaths, formatBytes, getHomeDir, scanLargeFiles } from "../api";
@@ -8,6 +9,7 @@ import ConfirmClean from "../components/ConfirmClean.vue";
 import ScanStatus from "../components/ScanStatus.vue";
 import { useScanProgress } from "../composables/useScanProgress";
 
+const { t } = useI18n();
 const { progress, reset: resetProgress } = useScanProgress("large");
 const root = ref("");
 const minSizeMb = ref(100);
@@ -63,7 +65,7 @@ async function doClean() {
     const result = await cleanPaths(selectedPaths.value);
     lastFreed.value = result.freed;
     if (result.errors.length) {
-      error.value = `Một số mục không xóa được:\n${result.errors.slice(0, 5).join("\n")}`;
+      error.value = `${t("common.cleanErrors")}\n${result.errors.slice(0, 5).join("\n")}`;
     }
     confirming.value = false;
     await runScan();
@@ -77,9 +79,9 @@ async function doClean() {
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold">File dung lượng lớn</h1>
+    <h1 class="text-2xl font-semibold">{{ t("large.title") }}</h1>
     <p class="mt-1 text-sm text-zinc-400">
-      Tìm các file lớn nhất trong thư mục để cân nhắc xóa hoặc chuyển đi.
+      {{ t("large.subtitle") }}
     </p>
 
     <div class="mt-5 flex flex-wrap items-center gap-3">
@@ -88,10 +90,10 @@ async function doClean() {
         @click="pickFolder"
       >
         <FolderOpen class="mr-1 inline size-4 align-[-2px]" />
-        {{ root || "Chọn thư mục..." }}
+        {{ root || t("common.pickFolder") }}
       </button>
       <label class="flex items-center gap-2 text-sm text-zinc-400">
-        Tối thiểu
+        {{ t("common.minSize") }}
         <input
           v-model.number="minSizeMb"
           type="number"
@@ -105,7 +107,7 @@ async function doClean() {
         :disabled="scanning || !root"
         @click="runScan"
       >
-        {{ scanning ? "Đang quét..." : "Quét" }}
+        {{ scanning ? t("common.scanning") : t("common.scan") }}
       </button>
     </div>
 
@@ -114,7 +116,7 @@ async function doClean() {
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
       <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
-      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      {{ t("common.freed", { size: formatBytes(lastFreed) }) }}
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -123,12 +125,12 @@ async function doClean() {
     <ScanStatus
       v-if="scanning"
       :progress="progress"
-      :fallback="`Đang quét ${root}...`"
+      :fallback="t('large.fallback', { root })"
     />
 
     <template v-if="scanned && !scanning">
       <p v-if="files.length === 0" class="mt-6 text-sm text-zinc-500">
-        Không có file nào ≥ {{ minSizeMb }} MB trong thư mục này.
+        {{ t("large.empty", { min: minSizeMb }) }}
       </p>
       <div v-else class="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
         <div
@@ -156,14 +158,14 @@ async function doClean() {
         class="sticky bottom-4 mt-6 flex items-center justify-between rounded-2xl border border-zinc-700 bg-zinc-900 p-4 shadow-xl"
       >
         <span class="text-sm text-zinc-300">
-          Đã chọn {{ selected.size }} file ·
+          {{ t("common.selectedFiles", { count: selected.size }, selected.size) }}
           <span class="font-semibold text-zinc-100">{{ formatBytes(selectedSize) }}</span>
         </span>
         <button
           class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-500"
           @click="confirming = true"
         >
-          Dọn dẹp
+          {{ t("common.clean") }}
         </button>
       </div>
     </template>

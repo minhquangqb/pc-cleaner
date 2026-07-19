@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { ChevronDown, ChevronRight, CircleCheck } from "@lucide/vue";
 import { cleanPaths, formatBytes, getHomeDir, scanDevJunk } from "../api";
 import type { DevArtifact } from "../types";
@@ -7,20 +8,14 @@ import ConfirmClean from "../components/ConfirmClean.vue";
 import ScanStatus from "../components/ScanStatus.vue";
 import { useScanProgress } from "../composables/useScanProgress";
 
-const KIND_META: Record<string, { name: string; description: string }> = {
-  node_modules: {
-    name: "node_modules — Node.js",
-    description: "Cài lại bằng npm / pnpm / yarn install khi cần làm việc tiếp.",
-  },
-  target: {
-    name: "target — Rust",
-    description: "Cargo sẽ build lại từ đầu ở lần cargo build tiếp theo.",
-  },
-  venv: {
-    name: "Virtualenv — Python",
-    description: "Tạo lại bằng python -m venv rồi pip install.",
-  },
-};
+const { t, te } = useI18n();
+
+function kindMeta(kind: string): { name: string; description: string } {
+  const key = `dev.kinds.${kind}`;
+  return te(`${key}.name`)
+    ? { name: t(`${key}.name`), description: t(`${key}.description`) }
+    : { name: kind, description: "" };
+}
 
 const { progress, reset: resetProgress } = useScanProgress("dev");
 const artifacts = ref<DevArtifact[]>([]);
@@ -49,7 +44,7 @@ const groups = computed(() => {
   return [...byKind.entries()]
     .map(([kind, entries]) => ({
       kind,
-      meta: KIND_META[kind] ?? { name: kind, description: "" },
+      meta: kindMeta(kind),
       entries:
         sortBy.value === "age"
           ? [...entries].sort((a, b) => b.age_days - a.age_days)
@@ -80,10 +75,10 @@ function shortProject(path: string): string {
 }
 
 function ageLabel(days: number): string {
-  if (days === 0) return "hôm nay";
-  if (days >= 365) return `${Math.floor(days / 365)} năm trước`;
-  if (days >= 30) return `${Math.floor(days / 30)} tháng trước`;
-  return `${days} ngày trước`;
+  if (days === 0) return t("time.today");
+  if (days >= 365) return t("time.yearsAgo", Math.floor(days / 365));
+  if (days >= 30) return t("time.monthsAgo", Math.floor(days / 30));
+  return t("time.daysAgo", days);
 }
 
 async function runScan() {
@@ -129,7 +124,7 @@ async function doClean() {
     const result = await cleanPaths(selectedPaths.value);
     lastFreed.value = result.freed;
     if (result.errors.length) {
-      error.value = `Một số mục không xóa được:\n${result.errors.slice(0, 5).join("\n")}`;
+      error.value = `${t("common.cleanErrors")}\n${result.errors.slice(0, 5).join("\n")}`;
     }
     // Drop cleaned artifacts locally instead of re-walking the whole home dir.
     const cleaned = new Set(selectedPaths.value);
@@ -148,10 +143,9 @@ async function doClean() {
   <div>
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold">Dọn dự án dev</h1>
+        <h1 class="text-2xl font-semibold">{{ t("dev.title") }}</h1>
         <p class="mt-1 text-sm text-zinc-400">
-          Quét thư mục home tìm node_modules, target (Rust), virtualenv của các
-          dự án — xóa xong đều tạo lại được bằng install/build.
+          {{ t("dev.subtitle") }}
         </p>
       </div>
       <button
@@ -159,7 +153,7 @@ async function doClean() {
         :disabled="scanning"
         @click="runScan"
       >
-        {{ scanning ? "Đang quét..." : scanned ? "Quét lại" : "Quét ngay" }}
+        {{ scanning ? t("common.scanning") : scanned ? t("common.rescan") : t("common.scanNow") }}
       </button>
     </div>
 
@@ -168,7 +162,7 @@ async function doClean() {
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
       <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
-      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      {{ t("common.freed", { size: formatBytes(lastFreed) }) }}
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -177,20 +171,20 @@ async function doClean() {
     <ScanStatus
       v-if="scanning"
       :progress="progress"
-      fallback="Đang tìm các dự án dev trong thư mục home..."
+      :fallback="t('dev.fallback')"
     />
 
     <template v-if="scanned && !scanning">
       <div v-if="artifacts.length === 0" class="mt-8 text-sm text-zinc-500">
-        Không tìm thấy artifact build nào trong thư mục home.
+        {{ t("dev.empty") }}
       </div>
 
       <template v-else>
         <div class="mt-4 flex items-center justify-between">
           <div class="text-sm text-zinc-400">
-            Tìm thấy {{ artifacts.length }} artifact, tổng cộng
+            {{ t("dev.foundPrefix", { count: artifacts.length }) }}
             <span class="font-semibold text-zinc-100">{{ formatBytes(totalSize) }}</span>
-            có thể dọn.
+            {{ t("dev.foundSuffix") }}
           </div>
           <div class="flex rounded-xl border border-zinc-800 p-0.5 text-xs">
             <button
@@ -198,14 +192,14 @@ async function doClean() {
               :class="sortBy === 'size' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
               @click="sortBy = 'size'"
             >
-              Dung lượng
+              {{ t("dev.sortSize") }}
             </button>
             <button
               class="rounded-lg px-3 py-1.5"
               :class="sortBy === 'age' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
               @click="sortBy = 'age'"
             >
-              Cũ nhất
+              {{ t("dev.sortAge") }}
             </button>
           </div>
         </div>
@@ -260,7 +254,7 @@ async function doClean() {
                     {{ shortProject(a.project) }}
                   </div>
                   <div class="text-[11px] text-zinc-500">
-                    build/cài lần cuối {{ ageLabel(a.age_days) }}
+                    {{ t("dev.lastBuilt", { age: ageLabel(a.age_days) }) }}
                   </div>
                 </div>
                 <span class="text-xs text-zinc-300">{{ formatBytes(a.size) }}</span>
@@ -274,14 +268,14 @@ async function doClean() {
           class="sticky bottom-4 mt-6 flex items-center justify-between rounded-2xl border border-zinc-700 bg-zinc-900 p-4 shadow-xl"
         >
           <span class="text-sm text-zinc-300">
-            Đã chọn {{ selected.size }} mục ·
+            {{ t("common.selectedItems", { count: selected.size }, selected.size) }}
             <span class="font-semibold text-zinc-100">{{ formatBytes(selectedSize) }}</span>
           </span>
           <button
             class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-500"
             @click="confirming = true"
           >
-            Dọn dẹp
+            {{ t("common.clean") }}
           </button>
         </div>
       </template>

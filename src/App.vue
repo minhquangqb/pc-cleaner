@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, type Component } from "vue";
+import { computed, ref, type Component } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   LayoutDashboard,
   Trash2,
@@ -11,6 +12,8 @@ import {
   Sparkles,
 } from "@lucide/vue";
 import { requestAnalyze } from "./composables/useAnalyzeTarget";
+import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
+import { getPlatform, setAppLanguage } from "./api";
 import DashboardView from "./views/DashboardView.vue";
 import JunkView from "./views/JunkView.vue";
 import DevJunkView from "./views/DevJunkView.vue";
@@ -19,28 +22,43 @@ import LargeFilesView from "./views/LargeFilesView.vue";
 import DupesView from "./views/DupesView.vue";
 import TreeView from "./views/TreeView.vue";
 
+const { t, locale } = useI18n();
+
 interface NavItem {
   id: string;
-  label: string;
   icon: Component;
   view: Component;
 }
 
-const nav: NavItem[] = [
-  { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard, view: DashboardView },
-  { id: "junk", label: "Dọn rác", icon: Trash2, view: JunkView },
-  { id: "dev", label: "Dự án dev", icon: FolderCode, view: DevJunkView },
-  { id: "apps", label: "Gỡ ứng dụng", icon: PackageX, view: UninstallView },
-  { id: "large", label: "File lớn", icon: FileBox, view: LargeFilesView },
-  { id: "tree", label: "Phân tích", icon: FolderTree, view: TreeView },
-  { id: "dupes", label: "Trùng lặp", icon: Files, view: DupesView },
+const allNav: NavItem[] = [
+  { id: "dashboard", icon: LayoutDashboard, view: DashboardView },
+  { id: "junk", icon: Trash2, view: JunkView },
+  { id: "dev", icon: FolderCode, view: DevJunkView },
+  { id: "apps", icon: PackageX, view: UninstallView },
+  { id: "large", icon: FileBox, view: LargeFilesView },
+  { id: "tree", icon: FolderTree, view: TreeView },
+  { id: "dupes", icon: Files, view: DupesView },
 ];
 
-const active = ref(nav[0]);
+// The uninstaller only works on macOS — hide its tab elsewhere. Guess from
+// the user agent for the first paint, then confirm with the backend.
+const isMac = ref(/Mac/i.test(navigator.userAgent));
+getPlatform().then((p) => (isMac.value = p === "macos"));
+
+const nav = computed(() =>
+  allNav.filter((item) => item.id !== "apps" || isMac.value),
+);
+
+const active = ref(allNav[0]);
 
 function openAnalyze(path: string) {
   requestAnalyze(path);
-  active.value = nav.find((item) => item.id === "tree") ?? active.value;
+  active.value = allNav.find((item) => item.id === "tree") ?? active.value;
+}
+
+function switchLocale(l: Locale) {
+  setLocale(l);
+  setAppLanguage(l).catch(() => {});
 }
 </script>
 
@@ -66,11 +84,28 @@ function openAnalyze(path: string) {
           @click="active = item"
         >
           <component :is="item.icon" class="size-4 shrink-0" />
-          {{ item.label }}
+          {{ t(`app.nav.${item.id}`) }}
         </button>
       </nav>
-      <div class="mt-auto px-2 text-[11px] leading-relaxed text-zinc-600">
-        Mọi thao tác xóa đều chuyển vào Thùng rác — có thể khôi phục.
+      <div class="mt-auto space-y-3 px-2">
+        <div class="flex rounded-lg border border-zinc-800 p-0.5 text-[11px]">
+          <button
+            v-for="l in SUPPORTED_LOCALES"
+            :key="l"
+            class="flex-1 rounded-md px-2 py-1 transition-colors"
+            :class="
+              locale === l
+                ? 'bg-zinc-800 text-zinc-100'
+                : 'text-zinc-500 hover:text-zinc-300'
+            "
+            @click="switchLocale(l)"
+          >
+            {{ LOCALE_NAMES[l] }}
+          </button>
+        </div>
+        <div class="text-[11px] leading-relaxed text-zinc-600">
+          {{ t("app.trashNote") }}
+        </div>
       </div>
     </aside>
 

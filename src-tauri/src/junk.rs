@@ -29,6 +29,41 @@ fn home() -> PathBuf {
     dirs::home_dir().unwrap_or_default()
 }
 
+/// `%LOCALAPPDATA%` on Windows, `~/Library/Application Support` on macOS,
+/// `~/.local/share` on Linux. Only used to build candidate paths — ones that
+/// don't exist on the current platform are filtered out later.
+fn local_data() -> PathBuf {
+    dirs::data_local_dir().unwrap_or_default()
+}
+
+/// Cache dirs of every profile in a Chromium-style `User Data` directory
+/// (Chrome, Edge, Brave on Windows): `Default`, `Profile 1`, ...
+fn chromium_profile_caches(user_data: PathBuf) -> Vec<PathBuf> {
+    let Ok(read) = std::fs::read_dir(&user_data) else {
+        return Vec::new();
+    };
+    read.flatten()
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            name == "Default" || name.starts_with("Profile ")
+        })
+        .flat_map(|e| {
+            ["Cache", "Code Cache", "GPUCache"]
+                .into_iter()
+                .map(move |sub| e.path().join(sub))
+        })
+        .collect()
+}
+
+/// `cache2` dirs of every Firefox profile (Windows keeps cache under
+/// `%LOCALAPPDATA%\Mozilla\Firefox\Profiles\<profile>\cache2`).
+fn firefox_profile_caches(profiles: PathBuf) -> Vec<PathBuf> {
+    let Ok(read) = std::fs::read_dir(&profiles) else {
+        return Vec::new();
+    };
+    read.flatten().map(|e| e.path().join("cache2")).collect()
+}
+
 fn category_defs() -> Vec<CategoryDef> {
     vec![
         CategoryDef {
@@ -40,6 +75,7 @@ fn category_defs() -> Vec<CategoryDef> {
                 vec![
                     home().join("Library/Caches"), // macOS
                     home().join(".cache"),         // Linux
+                    local_data().join("Microsoft/Windows/INetCache"), // Windows
                 ]
             },
         },
@@ -48,7 +84,12 @@ fn category_defs() -> Vec<CategoryDef> {
             name: "Log files",
             description: "File log cũ của ứng dụng và hệ thống (mức người dùng).",
             expand_children: true,
-            paths: || vec![home().join("Library/Logs")],
+            paths: || {
+                vec![
+                    home().join("Library/Logs"),       // macOS
+                    local_data().join("CrashDumps"),   // Windows
+                ]
+            },
         },
         CategoryDef {
             id: "browser_caches",
@@ -56,14 +97,29 @@ fn category_defs() -> Vec<CategoryDef> {
             description: "Cache của Chrome, Firefox, Edge... Không xóa lịch sử hay mật khẩu.",
             expand_children: false,
             paths: || {
-                vec![
+                let mut paths = vec![
+                    // macOS
                     home().join("Library/Caches/Google/Chrome"),
                     home().join("Library/Caches/com.google.Chrome"),
                     home().join("Library/Caches/Firefox"),
                     home().join("Library/Caches/com.microsoft.edgemac"),
                     home().join("Library/Caches/BraveSoftware"),
                     home().join("Library/Caches/Arc"),
-                ]
+                ];
+                // Windows: cache lives inside each browser profile
+                paths.extend(chromium_profile_caches(
+                    local_data().join("Google/Chrome/User Data"),
+                ));
+                paths.extend(chromium_profile_caches(
+                    local_data().join("Microsoft/Edge/User Data"),
+                ));
+                paths.extend(chromium_profile_caches(
+                    local_data().join("BraveSoftware/Brave-Browser/User Data"),
+                ));
+                paths.extend(firefox_profile_caches(
+                    local_data().join("Mozilla/Firefox/Profiles"),
+                ));
+                paths
             },
         },
         CategoryDef {
@@ -74,17 +130,26 @@ fn category_defs() -> Vec<CategoryDef> {
             expand_children: false,
             paths: || {
                 vec![
+                    // Cross-platform (dotdirs in home)
                     home().join(".npm/_cacache"),
-                    home().join("Library/pnpm/store"),
                     home().join(".pnpm-store"),
-                    home().join("Library/Caches/Yarn"),
                     home().join(".cargo/registry/cache"),
-                    home().join("Library/Caches/Homebrew"),
                     home().join(".gradle/caches"),
+                    // macOS
+                    home().join("Library/pnpm/store"),
+                    home().join("Library/Caches/Yarn"),
+                    home().join("Library/Caches/Homebrew"),
                     home().join("Library/Developer/Xcode/DerivedData"),
                     home().join("Library/Caches/CocoaPods"),
                     home().join("Library/Caches/pip"),
                     home().join("Library/Caches/go-build"),
+                    // Windows (%LOCALAPPDATA%)
+                    local_data().join("npm-cache"),
+                    local_data().join("pnpm/store"),
+                    local_data().join("Yarn/Cache"),
+                    local_data().join("pip/cache"),
+                    local_data().join("go-build"),
+                    local_data().join("NuGet/v3-cache"),
                 ]
             },
         },
@@ -155,7 +220,8 @@ pub fn scan_junk(app: &AppHandle) -> Vec<JunkCategory> {
                     progress::emit(
                         app,
                         "junk",
-                        &format!("Đang tính dung lượng: {}", def.name),
+                        // Stable key — the frontend renders it per locale.
+                        &format!("sizing:{}", def.id),
                         &p.display().to_string(),
                         done.load(Ordering::Relaxed),
                         total,

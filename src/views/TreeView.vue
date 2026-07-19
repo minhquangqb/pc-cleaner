@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { CircleCheck, FolderOpen, HardDrive, House } from "@lucide/vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -26,6 +27,7 @@ interface Column {
   entries: FileEntry[];
 }
 
+const { t } = useI18n();
 const { progress, reset: resetProgress } = useScanProgress("tree");
 const disks = ref<DiskInfo[]>([]);
 const home = ref("");
@@ -174,7 +176,7 @@ async function doClean() {
     const result = await cleanPaths(selectedPaths.value);
     lastFreed.value = result.freed;
     if (result.errors.length) {
-      error.value = `Một số mục không xóa được:\n${result.errors.slice(0, 5).join("\n")}`;
+      error.value = `${t("common.cleanErrors")}\n${result.errors.slice(0, 5).join("\n")}`;
     }
     confirming.value = false;
     selected.value = new Set();
@@ -190,10 +192,9 @@ async function doClean() {
 
 <template>
   <div class="flex h-full flex-col">
-    <h1 class="text-2xl font-semibold">Phân tích dung lượng</h1>
+    <h1 class="text-2xl font-semibold">{{ t("tree.title") }}</h1>
     <p class="mt-1 text-sm text-zinc-400">
-      Chọn ổ đĩa hoặc thư mục rồi duyệt ngay — dung lượng thư mục được tính nền
-      và cập nhật dần.
+      {{ t("tree.subtitle") }}
     </p>
 
     <div class="mt-5 flex flex-wrap items-center gap-2">
@@ -211,7 +212,7 @@ async function doClean() {
         <HardDrive class="mr-1 inline size-4 align-[-2px]" />
         {{ d.name || d.mount_point }}
         <span class="ml-1 text-xs text-zinc-500">
-          {{ formatBytes(d.total - d.available) }} đã dùng
+          {{ t("tree.usedShort", { size: formatBytes(d.total - d.available) }) }}
         </span>
       </button>
       <button
@@ -225,14 +226,14 @@ async function doClean() {
         @click="startScan(home)"
       >
         <House class="mr-1 inline size-4 align-[-2px]" />
-        Home
+        {{ t("tree.home") }}
       </button>
       <button
         class="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-300 hover:border-zinc-500"
         @click="pickFolder"
       >
         <FolderOpen class="mr-1 inline size-4 align-[-2px]" />
-        Thư mục khác...
+        {{ t("tree.otherFolder") }}
       </button>
     </div>
 
@@ -241,7 +242,7 @@ async function doClean() {
       class="mt-3 flex items-center gap-3 text-sm text-zinc-400"
     >
       <span>
-        Tổng:
+        {{ t("tree.total") }}
         <span class="font-semibold text-zinc-100">
           {{ formatBytes(totalSize) }}{{ scanning ? "+" : "" }}
         </span>
@@ -250,14 +251,14 @@ async function doClean() {
         <span
           class="size-3 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-500"
         />
-        Đang tính dung lượng...
+        {{ t("tree.computing") }}
         <span v-if="progress" class="max-w-md truncate font-mono">
           {{ progress.detail }}
         </span>
       </span>
       <span v-else class="flex items-center gap-1 text-xs text-emerald-500">
         <CircleCheck class="size-3.5" />
-        Đã tính xong
+        {{ t("tree.doneComputing") }}
       </span>
     </div>
 
@@ -266,7 +267,7 @@ async function doClean() {
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
       <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
-      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      {{ t("common.freed", { size: formatBytes(lastFreed) }) }}
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -286,7 +287,7 @@ async function doClean() {
           v-if="col.entries.length === 0"
           class="px-4 py-3 text-xs text-zinc-500"
         >
-          Thư mục trống.
+          {{ t("tree.emptyDir") }}
         </p>
         <button
           v-for="e in col.entries"
@@ -320,7 +321,7 @@ async function doClean() {
       </div>
     </div>
     <p v-else class="mt-10 text-center text-sm text-zinc-500">
-      Chọn một ổ đĩa hoặc thư mục ở trên để bắt đầu.
+      {{ t("tree.pickToStart") }}
     </p>
 
     <div
@@ -328,7 +329,7 @@ async function doClean() {
       class="sticky bottom-4 mt-6 flex items-center justify-between rounded-2xl border border-zinc-700 bg-zinc-900 p-4 shadow-xl"
     >
       <span class="text-sm text-zinc-300">
-        Đã chọn {{ selected.size }} mục ·
+        {{ t("common.selectedItems", { count: selected.size }, selected.size) }}
         <span class="font-semibold text-zinc-100">{{
           formatBytes(selectedSize)
         }}</span>
@@ -337,7 +338,7 @@ async function doClean() {
         class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-500"
         @click="confirming = true"
       >
-        Dọn dẹp
+        {{ t("common.clean") }}
       </button>
     </div>
 

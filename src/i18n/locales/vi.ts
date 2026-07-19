@@ -1,0 +1,175 @@
+export default {
+  app: {
+    nav: {
+      dashboard: "Tổng quan",
+      junk: "Dọn rác",
+      dev: "Dự án dev",
+      apps: "Gỡ ứng dụng",
+      large: "File lớn",
+      tree: "Phân tích",
+      dupes: "Trùng lặp",
+    },
+    trashNote: "Mọi thao tác xóa đều chuyển vào Thùng rác — có thể khôi phục.",
+  },
+  common: {
+    scanning: "Đang quét...",
+    rescan: "Quét lại",
+    scanNow: "Quét ngay",
+    scan: "Quét",
+    clean: "Dọn dẹp",
+    cancel: "Hủy",
+    freed: "Đã giải phóng {size} (chuyển vào Thùng rác).",
+    cleanErrors: "Một số mục không xóa được:",
+    selectedItems: "Đã chọn {count} mục ·",
+    selectedFiles: "Đã chọn {count} file ·",
+    pickFolder: "Chọn thư mục...",
+    minSize: "Tối thiểu",
+  },
+  time: {
+    today: "hôm nay",
+    daysAgo: "{n} ngày trước",
+    monthsAgo: "{n} tháng trước",
+    yearsAgo: "{n} năm trước",
+  },
+  confirm: {
+    title: "Xác nhận dọn dẹp",
+    body: "{count} mục ({size}) sẽ được chuyển vào Thùng rác — bạn có thể khôi phục nếu cần.",
+    busy: "Đang dọn...",
+    action: "Chuyển vào Thùng rác",
+  },
+  scan: {
+    filesCount: "{n} file",
+    itemsProgress: "{done} / {total} mục",
+    sizingCategory: "Đang tính dung lượng: {name}",
+    phases: {
+      reading_apps: "Đang đọc thông tin ứng dụng",
+      dupes_stage1: "Giai đoạn 1/3 — liệt kê file",
+      dupes_stage2: "Giai đoạn 2/3 — so sánh 64KB đầu file",
+      dupes_stage3: "Giai đoạn 3/3 — xác nhận bằng full hash",
+      walking: "Đang duyệt cây thư mục",
+      sorting: "Đang sắp xếp kết quả",
+      sizing: "Đang tính dung lượng",
+      done: "Hoàn tất",
+      finding_projects: "Đang tìm dự án dev...",
+      sizing_artifacts: "Đang tính dung lượng artifact",
+    },
+  },
+  dashboard: {
+    title: "Tổng quan",
+    subtitle: "Dung lượng các ổ đĩa trên máy của bạn.",
+    analyzeHint: "Phân tích dung lượng ổ này",
+    used: "đã dùng / {total}",
+    free: "Còn trống {size} ({percent}%)",
+    analyze: "Phân tích ›",
+  },
+  junk: {
+    title: "Dọn rác hệ thống",
+    subtitle:
+      "Cache, log và file tạm — an toàn để xóa, sẽ được chuyển vào Thùng rác.",
+    fallback: "Đang tính dung lượng các thư mục cache...",
+    foundPrefix: "Tìm thấy tổng cộng",
+    foundSuffix: "có thể dọn.",
+    categories: {
+      app_caches: {
+        name: "Cache ứng dụng",
+        description:
+          "Cache của các ứng dụng — an toàn để xóa, app sẽ tự tạo lại khi cần.",
+      },
+      logs: {
+        name: "Log files",
+        description: "File log cũ của ứng dụng và hệ thống (mức người dùng).",
+      },
+      browser_caches: {
+        name: "Cache trình duyệt",
+        description:
+          "Cache của Chrome, Firefox, Edge... Không xóa lịch sử hay mật khẩu.",
+      },
+      dev_caches: {
+        name: "Cache công cụ dev",
+        description:
+          "npm, pnpm, yarn, Cargo, Homebrew, Gradle, Xcode DerivedData — tái tạo được khi build/cài lại.",
+      },
+      temp: {
+        name: "File tạm",
+        description: "Thư mục temp của người dùng.",
+      },
+    },
+  },
+  dev: {
+    title: "Dọn dự án dev",
+    subtitle:
+      "Quét thư mục home tìm node_modules, target (Rust), virtualenv của các dự án — xóa xong đều tạo lại được bằng install/build.",
+    fallback: "Đang tìm các dự án dev trong thư mục home...",
+    empty: "Không tìm thấy artifact build nào trong thư mục home.",
+    foundPrefix: "Tìm thấy {count} artifact, tổng cộng",
+    foundSuffix: "có thể dọn.",
+    sortSize: "Dung lượng",
+    sortAge: "Cũ nhất",
+    lastBuilt: "build/cài lần cuối {age}",
+    kinds: {
+      node_modules: {
+        name: "node_modules — Node.js",
+        description:
+          "Cài lại bằng npm / pnpm / yarn install khi cần làm việc tiếp.",
+      },
+      target: {
+        name: "target — Rust",
+        description: "Cargo sẽ build lại từ đầu ở lần cargo build tiếp theo.",
+      },
+      venv: {
+        name: "Virtualenv — Python",
+        description: "Tạo lại bằng python -m venv rồi pip install.",
+      },
+    },
+  },
+  apps: {
+    title: "Gỡ ứng dụng",
+    subtitle:
+      "Gỡ app kèm file sót lại (cache, preferences, log...) — tất cả chuyển vào Thùng rác.",
+    scanApps: "Quét ứng dụng",
+    fallback: "Đang đọc thông tin các ứng dụng đã cài...",
+    empty: "Không tìm thấy ứng dụng nào (tính năng này hiện hỗ trợ macOS).",
+    searchPlaceholder: "Tìm ứng dụng...",
+    sortSize: "Dung lượng",
+    sortUnused: "Lâu không dùng",
+    lastOpened: "mở {age}",
+    never: "—",
+    uninstallBtn: "Gỡ...",
+    panelTitle: "Gỡ {name}",
+    panelSubtitle: "Chọn những gì sẽ chuyển vào Thùng rác.",
+    findingLeftovers: "Đang tìm file sót lại...",
+    leftoversHeader: "File sót lại trong ~/Library",
+    noLeftovers: "Không tìm thấy file sót lại nào.",
+    itemsCount: "{count} mục ·",
+    uninstall: "Gỡ cài đặt",
+  },
+  large: {
+    title: "File dung lượng lớn",
+    subtitle: "Tìm các file lớn nhất trong thư mục để cân nhắc xóa hoặc chuyển đi.",
+    fallback: "Đang quét {root}...",
+    empty: "Không có file nào ≥ {min} MB trong thư mục này.",
+  },
+  dupes: {
+    title: "File trùng lặp",
+    subtitle: "Tìm các file có nội dung giống hệt nhau (so sánh bằng hash BLAKE3).",
+    fallback: "Đang so sánh nội dung file trong {root}...",
+    empty: "Không tìm thấy file trùng lặp nào.",
+    groupsFound: "{count} nhóm trùng lặp · lãng phí",
+    keepFirst: "Chọn tất cả, giữ lại bản đầu tiên",
+    copies: "{count} bản sao · {size}/file",
+    wasted: "lãng phí {size}",
+  },
+  tree: {
+    title: "Phân tích dung lượng",
+    subtitle:
+      "Chọn ổ đĩa hoặc thư mục rồi duyệt ngay — dung lượng thư mục được tính nền và cập nhật dần.",
+    usedShort: "{size} đã dùng",
+    home: "Home",
+    otherFolder: "Thư mục khác...",
+    total: "Tổng:",
+    computing: "Đang tính dung lượng...",
+    doneComputing: "Đã tính xong",
+    emptyDir: "Thư mục trống.",
+    pickToStart: "Chọn một ổ đĩa hoặc thư mục ở trên để bắt đầu.",
+  },
+};

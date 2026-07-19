@@ -1,8 +1,8 @@
-use crate::junk;
+use crate::{i18n, junk};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_notification::NotificationExt;
 
 const TRAY_ID: &str = "main-tray";
@@ -13,12 +13,29 @@ const CHECK_INTERVAL: Duration = Duration::from_secs(12 * 60 * 60);
 /// Only notify when reclaimable junk exceeds this (5 GB).
 const NOTIFY_THRESHOLD: u64 = 5 * 1024 * 1024 * 1024;
 
-pub fn setup(app: &tauri::App) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, "open", "Mở PC Cleaner", true, None::<&str>)?;
-    let check = MenuItem::with_id(app, "check", "Kiểm tra rác ngay", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Thoát PC Cleaner", true, None::<&str>)?;
+fn build_menu<M: Manager<Wry>>(app: &M) -> tauri::Result<Menu<Wry>> {
+    let open = MenuItem::with_id(app, "open", i18n::tr("tray_open"), true, None::<&str>)?;
+    let check = MenuItem::with_id(app, "check", i18n::tr("tray_check"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", i18n::tr("tray_quit"), true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&open, &check, &separator, &quit])?;
+    Menu::with_items(app, &[&open, &check, &separator, &quit])
+}
+
+/// Rebuild the tray menu with the current language (menu APIs must run on
+/// the main thread; menu events keep working because item ids are stable).
+pub fn update_language(app: &AppHandle) {
+    let app = app.clone();
+    let _ = app.clone().run_on_main_thread(move || {
+        if let Some(tray) = app.tray_by_id(TRAY_ID) {
+            if let Ok(menu) = build_menu(&app) {
+                let _ = tray.set_menu(Some(menu));
+            }
+        }
+    });
+}
+
+pub fn setup(app: &tauri::App) -> tauri::Result<()> {
+    let menu = build_menu(app)?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
@@ -36,6 +53,14 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
             }
             "quit" => app.exit(0),
             _ => {}
+        })
+        .on_tray_icon_event(|_tray, _event| {
+            // Windows convention: double-clicking the tray icon reopens the
+            // window (single click already shows the menu).
+            #[cfg(target_os = "windows")]
+            if let tauri::tray::TrayIconEvent::DoubleClick { .. } = _event {
+                show_main_window(_tray.app_handle());
+            }
         })
         .build(app)?;
     Ok(())
@@ -67,10 +92,7 @@ async fn check_junk(app: &AppHandle, always_notify: bool) {
         .unwrap_or(0);
 
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
-        let _ = tray.set_tooltip(Some(format!(
-            "PC Cleaner — rác có thể dọn: {}",
-            format_bytes(total)
-        )));
+        let _ = tray.set_tooltip(Some(i18n::tr_size("tray_tooltip", &format_bytes(total))));
     }
 
     if always_notify || total >= NOTIFY_THRESHOLD {
@@ -78,10 +100,7 @@ async fn check_junk(app: &AppHandle, always_notify: bool) {
             .notification()
             .builder()
             .title("PC Cleaner")
-            .body(format!(
-                "Có thể giải phóng {} dung lượng rác — mở app để dọn dẹp.",
-                format_bytes(total)
-            ))
+            .body(i18n::tr_size("notify_body", &format_bytes(total)))
             .show();
     }
 }

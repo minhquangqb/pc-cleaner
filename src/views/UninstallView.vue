@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { CircleCheck, Search, X } from "@lucide/vue";
 import { cleanPaths, findAppLeftovers, formatBytes, listApps } from "../api";
 import type { AppInfo, FileEntry } from "../types";
@@ -7,6 +8,7 @@ import ConfirmClean from "../components/ConfirmClean.vue";
 import ScanStatus from "../components/ScanStatus.vue";
 import { useScanProgress } from "../composables/useScanProgress";
 
+const { t } = useI18n();
 const { progress, reset: resetProgress } = useScanProgress("apps");
 const apps = ref<AppInfo[]>([]);
 const scanning = ref(false);
@@ -43,11 +45,11 @@ const filtered = computed(() => {
 
 function lastUsedLabel(app: AppInfo): string {
   const d = app.last_used_days;
-  if (d === null) return "—";
-  if (d === 0) return "hôm nay";
-  if (d >= 365) return `${Math.floor(d / 365)} năm trước`;
-  if (d >= 30) return `${Math.floor(d / 30)} tháng trước`;
-  return `${d} ngày trước`;
+  if (d === null) return t("apps.never");
+  if (d === 0) return t("time.today");
+  if (d >= 365) return t("time.yearsAgo", Math.floor(d / 365));
+  if (d >= 30) return t("time.monthsAgo", Math.floor(d / 30));
+  return t("time.daysAgo", d);
 }
 
 async function runScan() {
@@ -110,7 +112,7 @@ async function doUninstall() {
     const result = await cleanPaths(checkedPaths.value);
     lastFreed.value = result.freed;
     if (result.errors.length) {
-      error.value = `Một số mục không xóa được:\n${result.errors.slice(0, 5).join("\n")}`;
+      error.value = `${t("common.cleanErrors")}\n${result.errors.slice(0, 5).join("\n")}`;
     } else {
       error.value = "";
     }
@@ -133,10 +135,9 @@ async function doUninstall() {
   <div>
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold">Gỡ ứng dụng</h1>
+        <h1 class="text-2xl font-semibold">{{ t("apps.title") }}</h1>
         <p class="mt-1 text-sm text-zinc-400">
-          Gỡ app kèm file sót lại (cache, preferences, log...) — tất cả chuyển
-          vào Thùng rác.
+          {{ t("apps.subtitle") }}
         </p>
       </div>
       <button
@@ -144,7 +145,7 @@ async function doUninstall() {
         :disabled="scanning"
         @click="runScan"
       >
-        {{ scanning ? "Đang quét..." : scanned ? "Quét lại" : "Quét ứng dụng" }}
+        {{ scanning ? t("common.scanning") : scanned ? t("common.rescan") : t("apps.scanApps") }}
       </button>
     </div>
 
@@ -153,7 +154,7 @@ async function doUninstall() {
       class="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300"
     >
       <CircleCheck class="mr-1 inline size-4 align-[-2px]" />
-      Đã giải phóng {{ formatBytes(lastFreed) }} (chuyển vào Thùng rác).
+      {{ t("common.freed", { size: formatBytes(lastFreed) }) }}
     </div>
     <p v-if="error" class="mt-4 whitespace-pre-line text-sm text-red-400">
       {{ error }}
@@ -162,12 +163,12 @@ async function doUninstall() {
     <ScanStatus
       v-if="scanning"
       :progress="progress"
-      fallback="Đang đọc thông tin các ứng dụng đã cài..."
+      :fallback="t('apps.fallback')"
     />
 
     <template v-if="scanned && !scanning">
       <div v-if="apps.length === 0" class="mt-8 text-sm text-zinc-500">
-        Không tìm thấy ứng dụng nào (tính năng này hiện hỗ trợ macOS).
+        {{ t("apps.empty") }}
       </div>
 
       <template v-else>
@@ -179,7 +180,7 @@ async function doUninstall() {
             <input
               v-model="search"
               type="text"
-              placeholder="Tìm ứng dụng..."
+              :placeholder="t('apps.searchPlaceholder')"
               class="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 py-2 pl-9 pr-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-700 focus:outline-none"
             />
           </div>
@@ -189,14 +190,14 @@ async function doUninstall() {
               :class="sortBy === 'size' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
               @click="sortBy = 'size'"
             >
-              Dung lượng
+              {{ t("apps.sortSize") }}
             </button>
             <button
               class="rounded-lg px-3 py-1.5"
               :class="sortBy === 'unused' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'"
               @click="sortBy = 'unused'"
             >
-              Lâu không dùng
+              {{ t("apps.sortUnused") }}
             </button>
           </div>
         </div>
@@ -228,7 +229,7 @@ async function doUninstall() {
               </div>
             </div>
             <div class="w-28 shrink-0 text-right text-xs text-zinc-400">
-              mở {{ lastUsedLabel(app) }}
+              {{ app.last_used_days === null ? t("apps.never") : t("apps.lastOpened", { age: lastUsedLabel(app) }) }}
             </div>
             <div class="w-20 shrink-0 text-right text-sm font-semibold text-zinc-200">
               {{ formatBytes(app.size) }}
@@ -237,7 +238,7 @@ async function doUninstall() {
               class="shrink-0 rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-950/40"
               @click="openApp(app)"
             >
-              Gỡ...
+              {{ t("apps.uninstallBtn") }}
             </button>
           </div>
         </div>
@@ -263,10 +264,10 @@ async function doUninstall() {
             />
             <div>
               <h2 class="text-lg font-semibold text-zinc-100">
-                Gỡ {{ current.name }}
+                {{ t("apps.panelTitle", { name: current.name }) }}
               </h2>
               <p class="mt-1 text-sm text-zinc-400">
-                Chọn những gì sẽ chuyển vào Thùng rác.
+                {{ t("apps.panelSubtitle") }}
               </p>
             </div>
           </div>
@@ -293,14 +294,14 @@ async function doUninstall() {
           </label>
 
           <div v-if="loadingLeftovers" class="px-2 py-2 text-xs text-zinc-500">
-            Đang tìm file sót lại...
+            {{ t("apps.findingLeftovers") }}
           </div>
           <template v-else>
             <div
               v-if="leftovers.length"
               class="px-2 pt-2 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
             >
-              File sót lại trong ~/Library
+              {{ t("apps.leftoversHeader") }}
             </div>
             <label
               v-for="l in leftovers"
@@ -322,14 +323,14 @@ async function doUninstall() {
               v-if="!leftovers.length"
               class="px-2 py-2 text-xs text-zinc-500"
             >
-              Không tìm thấy file sót lại nào.
+              {{ t("apps.noLeftovers") }}
             </div>
           </template>
         </div>
 
         <div class="mt-5 flex items-center justify-between">
           <span class="text-sm text-zinc-400">
-            {{ checkedPaths.length }} mục ·
+            {{ t("apps.itemsCount", { count: checkedPaths.length }, checkedPaths.length) }}
             <span class="font-semibold text-zinc-200">{{ formatBytes(checkedSize) }}</span>
           </span>
           <div class="flex gap-3">
@@ -337,14 +338,14 @@ async function doUninstall() {
               class="rounded-lg px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
               @click="closePanel"
             >
-              Hủy
+              {{ t("common.cancel") }}
             </button>
             <button
               class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
               :disabled="checkedPaths.length === 0 || loadingLeftovers"
               @click="confirming = true"
             >
-              Gỡ cài đặt
+              {{ t("apps.uninstall") }}
             </button>
           </div>
         </div>

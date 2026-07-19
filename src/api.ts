@@ -7,6 +7,7 @@ import type {
   DupGroup,
   FileEntry,
   JunkCategory,
+  Platform,
 } from "./types";
 
 export const getDiskInfo = () => invoke<DiskInfo[]>("get_disk_info");
@@ -42,6 +43,11 @@ export const cleanPaths = (paths: string[]) =>
   invoke<CleanResult>("clean_paths", { paths });
 
 export const getHomeDir = () => invoke<string>("get_home_dir");
+
+export const getPlatform = () => invoke<Platform>("get_platform");
+
+export const setAppLanguage = (lang: string) =>
+  invoke<void>("set_app_language", { lang });
 
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";

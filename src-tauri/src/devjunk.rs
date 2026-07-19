@@ -106,7 +106,7 @@ fn walk(dir: &Path, depth: usize, app: &AppHandle, visited: &AtomicU64) -> Vec<F
         progress::emit(
             app,
             "dev",
-            "Đang tìm dự án dev...",
+            "finding_projects",
             &dir.display().to_string(),
             count,
             0,
@@ -140,7 +140,7 @@ pub fn scan_dev_junk(app: &AppHandle) -> Vec<DevArtifact> {
             progress::emit(
                 app,
                 "dev",
-                "Đang tính dung lượng artifact",
+                "sizing_artifacts",
                 &f.path.display().to_string(),
                 done.load(Ordering::Relaxed),
                 total,

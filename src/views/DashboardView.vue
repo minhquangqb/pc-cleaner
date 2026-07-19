@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { formatBytes, getDiskInfo } from "../api";
 import type { DiskInfo } from "../types";
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   analyze: [path: string];
@@ -26,9 +29,9 @@ function usedPercent(d: DiskInfo): number {
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold">Tổng quan</h1>
+    <h1 class="text-2xl font-semibold">{{ t("dashboard.title") }}</h1>
     <p class="mt-1 text-sm text-zinc-400">
-      Dung lượng các ổ đĩa trên máy của bạn.
+      {{ t("dashboard.subtitle") }}
     </p>
 
     <p v-if="error" class="mt-6 text-sm text-red-400">{{ error }}</p>
@@ -38,7 +41,7 @@ function usedPercent(d: DiskInfo): number {
         v-for="d in disks"
         :key="d.mount_point"
         class="cursor-pointer rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition-colors hover:border-emerald-700/60 hover:bg-zinc-900"
-        title="Phân tích dung lượng ổ này"
+        :title="t('dashboard.analyzeHint')"
         @click="emit('analyze', d.mount_point)"
       >
         <div class="flex items-baseline justify-between">
@@ -55,7 +58,7 @@ function usedPercent(d: DiskInfo): number {
               {{ formatBytes(d.total - d.available) }}
             </div>
             <div class="text-xs text-zinc-500">
-              đã dùng / {{ formatBytes(d.total) }}
+              {{ t("dashboard.used", { total: formatBytes(d.total) }) }}
             </div>
           </div>
         </div>
@@ -68,9 +71,14 @@ function usedPercent(d: DiskInfo): number {
         </div>
         <div class="mt-2 flex items-center justify-between text-xs text-zinc-500">
           <span>
-            Còn trống {{ formatBytes(d.available) }} ({{ 100 - usedPercent(d) }}%)
+            {{
+              t("dashboard.free", {
+                size: formatBytes(d.available),
+                percent: 100 - usedPercent(d),
+              })
+            }}
           </span>
-          <span class="text-emerald-600">Phân tích ›</span>
+          <span class="text-emerald-600">{{ t("dashboard.analyze") }}</span>
         </div>
       </div>
     </div>

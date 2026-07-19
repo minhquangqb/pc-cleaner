@@ -154,7 +154,7 @@ fn worker_loop(
             progress::emit(
                 &app,
                 "tree",
-                "Đang tính dung lượng",
+                "sizing",
                 &dir.display().to_string(),
                 done_count,
                 0,
@@ -187,7 +187,7 @@ fn worker_loop(
                     .get(&root)
                     .copied()
                     .unwrap_or(0);
-                progress::emit(&app, "tree", "Hoàn tất", "", done_count, done_count.max(1));
+                progress::emit(&app, "tree", "done", "", done_count, done_count.max(1));
                 let _ = app.emit(TREE_DONE_EVENT, total);
             }
             return;
@@ -211,7 +211,7 @@ fn repartition(q: &mut Queue, focus: PathBuf, version: u64) {
 /// Live listing of a directory: names via `read_dir`, file sizes via metadata,
 /// directory sizes from the (possibly still growing) index. Largest first.
 pub fn get_children(state: &TreeState, dir: &Path) -> Result<Vec<FileEntry>, String> {
-    let read = fs::read_dir(dir).map_err(|e| format!("Không đọc được thư mục: {e}"))?;
+    let read = fs::read_dir(dir).map_err(|e| format!("Cannot read directory: {e}"))?;
     let mut out: Vec<FileEntry> = Vec::new();
     {
         let sizes = state.0.dir_sizes.lock().unwrap();

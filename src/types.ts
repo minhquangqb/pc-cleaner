@@ -49,6 +49,8 @@ export interface AppInfo {
   icon: string | null;
 }
 
+export type Platform = "macos" | "windows" | "linux";
+
 export interface ScanProgress {
   task: "junk" | "large" | "dupes" | "tree" | "dev" | "apps";
   phase: string;

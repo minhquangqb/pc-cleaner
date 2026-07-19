@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { formatBytes } from "../api";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   paths: string[];
@@ -21,11 +24,14 @@ const emit = defineEmits<{
     <div
       class="mx-4 flex max-h-[80vh] w-full max-w-xl flex-col rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
     >
-      <h2 class="text-lg font-semibold text-zinc-100">Xác nhận dọn dẹp</h2>
+      <h2 class="text-lg font-semibold text-zinc-100">{{ t("confirm.title") }}</h2>
       <p class="mt-1 text-sm text-zinc-400">
-        {{ props.paths.length }} mục ({{ formatBytes(props.totalSize) }}) sẽ được
-        chuyển vào <span class="font-medium text-zinc-200">Thùng rác</span> —
-        bạn có thể khôi phục nếu cần.
+        {{
+          t("confirm.body", {
+            count: props.paths.length,
+            size: formatBytes(props.totalSize),
+          })
+        }}
       </p>
 
       <ul
@@ -42,14 +48,14 @@ const emit = defineEmits<{
           :disabled="props.busy"
           @click="emit('cancel')"
         >
-          Hủy
+          {{ t("common.cancel") }}
         </button>
         <button
           class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
           :disabled="props.busy"
           @click="emit('confirm')"
         >
-          {{ props.busy ? "Đang dọn..." : "Chuyển vào Thùng rác" }}
+          {{ props.busy ? t("confirm.busy") : t("confirm.action") }}
         </button>
       </div>
     </div>

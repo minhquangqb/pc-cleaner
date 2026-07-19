@@ -22,7 +22,7 @@ pub fn scan_large_files(app: &AppHandle, root: &Path, min_size: u64, limit: usiz
                 progress::emit(
                     app,
                     "large",
-                    "Đang duyệt cây thư mục",
+                    "walking",
                     &entry.parent_path().display().to_string(),
                     walked,
                     0,
@@ -41,7 +41,7 @@ pub fn scan_large_files(app: &AppHandle, root: &Path, min_size: u64, limit: usiz
         })
         .collect();
 
-    progress::emit(app, "large", "Đang sắp xếp kết quả", "", walked, 0);
+    progress::emit(app, "large", "sorting", "", walked, 0);
     files.sort_by(|a, b| b.size.cmp(&a.size));
     files.truncate(limit);
     files

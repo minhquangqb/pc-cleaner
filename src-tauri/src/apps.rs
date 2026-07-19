@@ -52,7 +52,7 @@ pub fn list_apps(app: &AppHandle) -> Vec<AppInfo> {
             progress::emit(
                 app,
                 "apps",
-                "Đang đọc thông tin ứng dụng",
+                "reading_apps",
                 &bundle.display().to_string(),
                 done.load(Ordering::Relaxed),
                 total,
