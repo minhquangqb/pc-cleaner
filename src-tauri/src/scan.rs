@@ -42,7 +42,12 @@ pub fn on_disk_size(meta: &std::fs::Metadata) -> u64 {
     meta.len()
 }
 
-/// Total size in bytes of a file or directory tree (parallel walk).
+/// Total size in bytes of a file or directory tree.
+///
+/// The walk is serial on purpose: callers parallelize per candidate with
+/// rayon, and jwalk's parallel walk silently drops entries when started from
+/// inside a busy rayon worker thread (undercounted sizes, categories
+/// vanishing from the junk scan).
 pub fn path_size(path: &Path) -> u64 {
     if path.is_file() {
         return path.metadata().map(|m| m.len()).unwrap_or(0);
@@ -50,6 +55,7 @@ pub fn path_size(path: &Path) -> u64 {
     WalkDir::new(path)
         .skip_hidden(false)
         .follow_links(false)
+        .parallelism(jwalk::Parallelism::Serial)
         .into_iter()
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
