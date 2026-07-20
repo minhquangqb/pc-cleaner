@@ -1,6 +1,6 @@
 [package]
 name = "pc-cleaner"
-version = "0.1.0"
+version = "0.1.1"
 description = "Disk cleanup utility: junk scan, large files, duplicate finder"
 authors = ["dungqb"]
 edition = "2021"

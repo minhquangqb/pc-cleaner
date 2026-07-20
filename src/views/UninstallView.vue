@@ -122,6 +122,8 @@ async function doUninstall() {
       apps.value = apps.value.filter((a) => a.path !== app.path);
     }
     confirming.value = false;
+    // Reset before closePanel — its guard blocks closing while cleaning.
+    cleaning.value = false;
     closePanel();
   } catch (e) {
     error.value = String(e);
