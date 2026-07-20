@@ -133,10 +133,10 @@ async function doClean() {
         {{ t("large.empty", { min: minSizeMb }) }}
       </p>
       <div v-else class="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
-        <div
+        <label
           v-for="f in files"
           :key="f.path"
-          class="flex items-center gap-3 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-2.5 last:border-b-0 hover:bg-zinc-800/40"
+          class="flex cursor-pointer items-center gap-3 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-2.5 last:border-b-0 hover:bg-zinc-800/40"
         >
           <input
             type="checkbox"
@@ -150,7 +150,7 @@ async function doClean() {
           <span class="text-sm font-medium text-zinc-200">
             {{ formatBytes(f.size) }}
           </span>
-        </div>
+        </label>
       </div>
 
       <div

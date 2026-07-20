@@ -238,10 +238,10 @@ async function doClean() {
             </div>
 
             <div v-if="expanded.has(group.kind)" class="border-t border-zinc-800">
-              <div
+              <label
                 v-for="a in group.entries"
                 :key="a.path"
-                class="flex items-center gap-3 px-4 py-2 hover:bg-zinc-800/40"
+                class="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-zinc-800/40"
               >
                 <input
                   type="checkbox"
@@ -258,7 +258,7 @@ async function doClean() {
                   </div>
                 </div>
                 <span class="text-xs text-zinc-300">{{ formatBytes(a.size) }}</span>
-              </div>
+              </label>
             </div>
           </div>
         </div>

@@ -170,10 +170,10 @@ async function doClean() {
               </span>
             </div>
             <div class="mt-2 space-y-1">
-              <div
+              <label
                 v-for="p in g.paths"
                 :key="p"
-                class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-800/40"
+                class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-800/40"
               >
                 <input
                   type="checkbox"
@@ -184,7 +184,7 @@ async function doClean() {
                 <span class="flex-1 truncate font-mono text-xs text-zinc-400">
                   {{ p }}
                 </span>
-              </div>
+              </label>
             </div>
           </div>
         </div>
