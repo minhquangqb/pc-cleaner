@@ -55,5 +55,5 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'PC Cleaner ${{ github.ref_name }}'
-          releaseDraft: true
+          releaseDraft: false
           args: ${{ matrix.args }}
